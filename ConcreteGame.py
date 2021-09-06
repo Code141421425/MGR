@@ -14,6 +14,20 @@ class Game:
 
 class TestGame(Game):
 
+    def AddScript(self, script):
+        self.scriptList.append(script)
+
+    def RemoveScript(self, script):
+        self.scriptList.remove(script)
+
     def Notify(self):
-        pass
+        for sp in self.scriptList:
+            sp.run()
+
+
+
+
+
+
+
 
