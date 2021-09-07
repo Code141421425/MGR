@@ -1,81 +1,98 @@
+# -*- coding: utf-8 -*-
 import argparse
-from airtest.cli.runner import AirtestCase, run_script
-from airtest.cli.parser import runner_parser
 import os
+from Lib.AirtestCaseRunner import AirtestCase, run_script
+from GameSettings.PackageNameMapping import PackageNameMapping as mapping
+from airtest.core.api import *
 
 
 class ScriptLauncher(AirtestCase):
     gameName = ""
-    scriptList = []
+    scriptName = ""
     deviceId = ""
-    launcherArgs = ""
 
-    PROJECT_ROOT = os.path.abspath(__file__ + "\\..\\..")
-    SCRIPT_ROOT = PROJECT_ROOT + "\\Scripts\\"
-    _defaultDeviceId = "Android:///0123456789ABCDEF"
+    SCRIPT_ROOT = os.path.abspath(__file__ + "\\..\\..") + "\\Scripts\\"
+    _DEFAULT_DEVICE_ID = "Android:///0123456789ABCDEF"
 
-    def __init__(self, gameName="TestGame", scriptList="TestGame_1", devicdId=_defaultDeviceId):
+    def __init__(self, gameName, scriptName, devicdId=None):
         super().__init__()
         self.gameName = gameName
-        self.scriptList = scriptList
-        self.deviceId = devicdId
-        self.launcherArgs = self.__HandleArgs(("%s\\%s\\%s_1.air")
-                                       % (self.SCRIPT_ROOT, self.gameName, self.gameName))
+        self.scriptName = scriptName
 
-    # @classmethod
-    # def setUpClass(cls):
-    #     print("setUpClass")
-    #     # print(cls,cls.__HandleArgs(("%s\\%s\\%s_StartUp.air")
-    #     #                                % (cls.SCRIPT_ROOT, cls.gameName, cls.gameName)))
-    #
-    #     # run_script(cls.__HandleArgs(("%s\\%s\\%s_StartUp.air")
-    #     #                                % (cls.SCRIPT_ROOT, cls.gameName, cls.gameName)))
+        if not devicdId:
+            self.deviceId = self._DEFAULT_DEVICE_ID
 
+    def runScript(self):
+        pass
 
-    def setUp(self):
-        print("custom setup")
-        # add var/function/class/.. to globals
-        self.scope["hunter"] = [176, 1778]
-        self.scope["add"] = lambda x: x+1
-
-        # exec setup script
-
-
-        super(ScriptLauncher, self).setUp()
-
-    def tearDown(self):
-        print("custom tearDown")
-        # exec teardown script
-        super(ScriptLauncher, self).tearDown()
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        print("tearDownClass(cls) -> None:")
-
-
-    def __HandleArgs(self, script):
+    def _HandleArgs(self, script):
         return argparse.Namespace(
             compress=10, device=self.deviceId, no_image=None,
             log=None, recording=None, script=script)
 
-    def Run(self):
-        run_script(self.launcherArgs, ScriptLauncher)
-        ##self.__setUp()
-        ##self.__tearDown()
+
+class QuickScriptLauncher(ScriptLauncher):
+    launcherArgs = ""
+    scriptArgs = ""
+
+    def __init__(self, gameName="", scriptName="", scriptArgs="", devicdId=None,):
+        super(QuickScriptLauncher, self).__init__(gameName, scriptName, devicdId)
+        self.launcherArgs = self._HandleArgs(("%s\\%s\\%s.air")
+                                              % (self.SCRIPT_ROOT, self.gameName, self.scriptName))
+        self.scriptArgs = scriptArgs
+
+    def setUp(self):
+        print("custom setup")
+        for scriptArg in self.scriptArgs:
+            self.scope[scriptArg] = self.scriptArgs[scriptArg]
+        super(QuickScriptLauncher, self).setUp()
+
+    def tearDown(self):
+        print("custom tearDown")
+        super(QuickScriptLauncher, self).tearDown()
+
+    def runScript(self):
+        run_script(self.launcherArgs, self)
+
+    def ShowAttr(self):
+        print("gameName:%s, scriptName:%s, scriptArgs:%s, "
+              "devicdId:%s,  launcherArgs:%s,scriptArgs:%s" %
+              (self.gameName, self.scriptName, self.scriptArgs,
+               self.deviceId, self.launcherArgs, self.scriptArgs))
+
+
+class GameStartUp(QuickScriptLauncher):
+    def __init__(self, gameName, devicdId=None):
+        self.scriptName = gameName + "_StartUp"
+        self.scriptArgs = {"packageName": mapping[str(gameName)]}
+        super(GameStartUp, self).__init__(gameName, self.scriptName, self.scriptArgs)
+
+
+class GameTearDown(ScriptLauncher):
+    ADB_PATH = ""
+
+    def __init__(self, gameName):
+        self.gameName = gameName
+        self.ADB_PATH = os.path.abspath(__file__ + "\\..") + "\\ADB\\"
+
+    def runScript(self):
+        cmd = "%sadb.exe shell am force-stop %s" % (self.ADB_PATH, mapping[self.gameName])
+        print(cmd)
+        os.system(cmd)
 
 
 if __name__ == '__main__':
     print("="*10)
-    #ap = runner_parser()
-    #args = ap.parse_args()
-   # print(args)
-    #run_script(args, ScriptLauncher)
 
-    run_script(ScriptLauncher().args,ScriptLauncher)
+    qsl = QuickScriptLauncher("TestGame", "TestGame_1", {"hunter":[176, 1778]})
+    print(qsl.ShowAttr())
+    #qsl.runScript()
 
-    #ScriptLauncher().Run()
+    qsl2 = QuickScriptLauncher("FGO", "FGO_StartUp")
+    #qsl2.runScript()
 
+    stt = GameStartUp("FGO")
+   # stt.runScript()
 
-
-
-    # print(sl.pt())
+    gtd = GameTearDown("FGO")
+    gtd.runScript()

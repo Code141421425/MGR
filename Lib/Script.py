@@ -1,11 +1,12 @@
 import os
 
 
-class Script:
+class Script():
     scriptName = ""
     gameName = ""
-    deviceId = ""
-    _defaultDeviceId = "0123456789ABCDEF"
+    deviceId = "-1"
+
+    _DEFAULT_DEVICE_ID = "0123456789ABCDEF"
     rootPath = os.path.abspath("..\\..\\")
 
     def __init__(self, gameName, scriptName, deviceId = None):

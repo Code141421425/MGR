@@ -7,6 +7,9 @@ touch(hunter)
 
 #hunter = ""
 
+#start_app("com.bilibili.fatego")
+
 print("="*20)
 print(hunter)
-print(add(100))
+#print(add(100))
+
