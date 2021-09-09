@@ -35,7 +35,7 @@ class QuickScriptLauncher(ScriptLauncher):
     launcherArgs = ""
     scriptArgs = ""
 
-    def __init__(self, gameName="", scriptName="", scriptArgs="", devicdId=None,):
+    def __init__(self, gameName=None, scriptName=None, scriptArgs=None, devicdId=None,):
         super(QuickScriptLauncher, self).__init__(gameName, scriptName, devicdId)
         self.launcherArgs = self._HandleArgs(("%s\\%s\\%s.air")
                                               % (self.SCRIPT_ROOT, self.gameName, self.scriptName))

@@ -1,5 +1,5 @@
 
 PackageNameMapping = {
-    "TestGame": "com.TestGame.dev",
+    "TestGame": "com.bilibili.azurlane",
     "FGO": "com.bilibili.fatego",#,"com.bilibili.fatego.UnityPlayerNativeActivity"],
 }
