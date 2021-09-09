@@ -73,6 +73,7 @@ class GameTearDown(ScriptLauncher):
 
     def __init__(self, gameName):
         self.gameName = gameName
+        self.scriptName = gameName + "_TearDown"
         self.ADB_PATH = os.path.abspath(__file__ + "\\..") + "\\ADB\\"
 
     def runScript(self):
@@ -82,17 +83,4 @@ class GameTearDown(ScriptLauncher):
 
 
 if __name__ == '__main__':
-    print("="*10)
-
-    qsl = QuickScriptLauncher("TestGame", "TestGame_1", {"hunter":[176, 1778]})
-    print(qsl.ShowAttr())
-    #qsl.runScript()
-
-    qsl2 = QuickScriptLauncher("FGO", "FGO_StartUp")
-    #qsl2.runScript()
-
-    stt = GameStartUp("FGO")
-   # stt.runScript()
-
-    gtd = GameTearDown("FGO")
-    gtd.runScript()
+    pass

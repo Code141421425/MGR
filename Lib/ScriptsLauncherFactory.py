@@ -33,46 +33,4 @@ class ScriptsLauncherFactory:
 
 
 if __name__ == "__main__":
-    clf = ScriptsLauncherFactory()
-
-    #cl1 = clf.createScriptLauncher("QuickScriptLauncher", "TestGame", "TestGame_1", scriptArgs = {"hunter":[176, 1778]})
-    #cl1.runScript()
-
-    dict = {"TestGame": {
-        "GameName": "TestGame",
-        "TestGame_1": {
-            "scriptType": "QuickScriptLauncher",
-            "scriptArgs": {
-                "Times": 2
-            }
-        },
-    },
-        "FGO": {
-            "GameName": "FGO",
-            "Test": {
-                "scriptType": "QuickScriptLauncher",
-                "scriptArgs": {
-                    "Times": 2
-                }
-            },
-            "Test2": {
-                "scriptType": "QuickScriptLauncher",
-                "scriptArgs": {
-                    "Times": 10
-                }
-            }
-        }
-    }
-
-    reslut = []
-
-    for d in dict:
-        reslut.append(clf.createScriptLauncherSuit(dict[d]))
-
-
-    print(reslut)
-
-
-    for r in reslut:
-        for sr in r:
-            r.runScript()
+    pass
