@@ -4,6 +4,6 @@ import os
 
 auto_setup(__file__)
 
-#start_app(packageName)
+print("Get Times ： " + str(Times))
 
-#sleep(5)
+sleep(5)

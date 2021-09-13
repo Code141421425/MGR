@@ -14,12 +14,12 @@ class ScriptLauncher(AirtestCase):
     SCRIPT_ROOT = os.path.abspath(__file__ + "\\..\\..") + "\\Scripts\\"
     _DEFAULT_DEVICE_ID = "Android:///0123456789ABCDEF"
 
-    def __init__(self, gameName, scriptName, devicdId=None):
+    def __init__(self, gameName, scriptName, deviceId=None):
         super().__init__()
         self.gameName = gameName
         self.scriptName = scriptName
 
-        if not devicdId:
+        if not deviceId:
             self.deviceId = self._DEFAULT_DEVICE_ID
 
     def runScript(self):
@@ -56,16 +56,20 @@ class QuickScriptLauncher(ScriptLauncher):
 
     def ShowAttr(self):
         print("gameName:%s, scriptName:%s, scriptArgs:%s, "
-              "devicdId:%s,  launcherArgs:%s,scriptArgs:%s" %
+              "deviceId:%s,  launcherArgs:%s,scriptArgs:%s" %
               (self.gameName, self.scriptName, self.scriptArgs,
                self.deviceId, self.launcherArgs, self.scriptArgs))
 
 
 class GameStartUp(QuickScriptLauncher):
-    def __init__(self, gameName, devicdId=None):
+    def __init__(self, gameName, deviceId=None):
         self.scriptName = gameName + "_StartUp"
         self.scriptArgs = {"packageName": mapping[str(gameName)]}
         super(GameStartUp, self).__init__(gameName, self.scriptName, self.scriptArgs)
+
+    def runScript(self):
+        print("游戏启动： " + self.scriptArgs["packageName"])
+        super(GameStartUp, self).runScript()
 
 
 class GameTearDown(ScriptLauncher):

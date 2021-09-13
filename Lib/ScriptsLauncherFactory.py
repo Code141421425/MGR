@@ -10,26 +10,26 @@ class ScriptsLauncherFactory:
         return globals()[scriptType](gameName, **kw)
 
     def createScriptLauncherSuit(self, gameDict):
-        reslut = []
+        result = []
         gameName = gameDict.pop("GameName")
 
         # 凭gameName，增加游戏开始脚本
-        reslut.append(self.createSingleScriptLauncher(self.STARTUP_CLASS_NAME,
+        result.append(self.createSingleScriptLauncher(self.STARTUP_CLASS_NAME,
                                                       gameName))
 
         # 增加dict中的脚本
         for scriptKey in gameDict:
             print("已加载： "+scriptKey)
-            reslut.append(self.createSingleScriptLauncher(gameDict[scriptKey]["scriptType"],
+            result.append(self.createSingleScriptLauncher(gameDict[scriptKey]["scriptType"],
                                                           gameName,
                                                           scriptName=scriptKey,
                                                           scriptArgs=gameDict[scriptKey]["scriptArgs"]))
 
         # 凭gameName，增加游戏结束脚本
-        reslut.append(self.createSingleScriptLauncher(self.TEARDOWN_CLASS_NAME,
+        result.append(self.createSingleScriptLauncher(self.TEARDOWN_CLASS_NAME,
                                                       gameName))
 
-        return reslut
+        return result
 
 
 if __name__ == "__main__":

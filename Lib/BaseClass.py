@@ -27,21 +27,6 @@ class GamesDict:
 
 
 if __name__ == "__main__":
-    # gd = GamesDict()
-    # gd.AddScript("FGO", Script("Attack", {"Times": 2}))
-
-    gdt = GamesDict()
-    gdt.AddScript("TestGame", Script("TestGame_1", {"hunter": [500, 500]}))
-
-    gdt.AddScript("FGO", Script("FGO_Test", {"Times": 2}))
-    gdt.AddScript("FGO", Script("FGO_Test2", {"Times": 10}))
-
-    from Lib.GameManager import GameManager
-
-    gm = GameManager(gdt.gameDict)
-    gm.scriptsStart()
-
-    print(gdt.gameDict)
-
+    pass
 
 
