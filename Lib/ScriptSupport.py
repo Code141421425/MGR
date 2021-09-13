@@ -5,15 +5,27 @@ from airtest.core.api import *
 class RandomPosTime:
     DEFAULT_POS = [500, 500]
     DEFAULT_SLEEP_TIME = 1
+    TRY_EXISTS_TIMES = 3
 
     def randomPos(self, tarPos=None, scale=0):
         # 为空位置，附加默认值
         if not tarPos:
             tarPos = self.DEFAULT_POS
 
-        # 如果是图片，坐标值
+        # 如果是图片，返回坐标值
         if type(tarPos) == Template:
-            tarPos = exists(tarPos)
+            for i in range(self.TRY_EXISTS_TIMES):
+                if exists(tarPos):
+                    tarPos = exists(tarPos)
+                    break
+                else:
+                    sleep(self.DEFAULT_SLEEP_TIME)
+
+        if (type(tarPos) != list) & (type(tarPos) != tuple):
+            print("Do Not find the picture when touch")
+            return
+
+        print(tarPos)
 
         variable = 0
         if scale == 0:
