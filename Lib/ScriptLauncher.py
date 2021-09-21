@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import os
+import time
 from Lib.AirtestCaseRunner import AirtestCase, run_script
 from GameSettings.PackageNameMapping import PackageNameMapping as mapping
 from airtest.core.api import *
@@ -43,8 +44,11 @@ class QuickScriptLauncher(ScriptLauncher):
 
     def setUp(self):
         print("custom setup")
-        for scriptArg in self.scriptArgs:
-            self.scope[scriptArg] = self.scriptArgs[scriptArg]
+
+        if self.scriptArgs:
+            for scriptArg in self.scriptArgs:
+                self.scope[scriptArg] = self.scriptArgs[scriptArg]
+
         super(QuickScriptLauncher, self).setUp()
 
     def tearDown(self):
@@ -81,6 +85,7 @@ class GameTearDown(ScriptLauncher):
         self.ADB_PATH = os.path.abspath(__file__ + "\\..") + "\\ADB\\"
 
     def runScript(self):
+        time.sleep(2.7)
         cmd = "%sadb.exe shell am force-stop %s" % (self.ADB_PATH, mapping[self.gameName])
         print(cmd)
         os.system(cmd)

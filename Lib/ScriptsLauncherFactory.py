@@ -9,13 +9,14 @@ class ScriptsLauncherFactory:
     def createSingleScriptLauncher(self, scriptType, gameName, **kw):
         return globals()[scriptType](gameName, **kw)
 
-    def createScriptLauncherSuit(self, gameDict):
+    def createScriptLauncherSuit(self, gameDict, ifStartApp=True):
         result = []
         gameName = gameDict.pop("GameName")
 
-        # 凭gameName，增加游戏开始脚本
-        result.append(self.createSingleScriptLauncher(self.STARTUP_CLASS_NAME,
-                                                      gameName))
+        if ifStartApp:
+            # 凭gameName，增加游戏开始脚本
+            result.append(self.createSingleScriptLauncher(self.STARTUP_CLASS_NAME,
+                                                          gameName))
 
         # 增加dict中的脚本
         for scriptKey in gameDict:
@@ -25,9 +26,10 @@ class ScriptsLauncherFactory:
                                                           scriptName=scriptKey,
                                                           scriptArgs=gameDict[scriptKey]["scriptArgs"]))
 
+        if ifStartApp:
         # 凭gameName，增加游戏结束脚本
-        result.append(self.createSingleScriptLauncher(self.TEARDOWN_CLASS_NAME,
-                                                      gameName))
+            result.append(self.createSingleScriptLauncher(self.TEARDOWN_CLASS_NAME,
+                                                          gameName))
 
         return result
 
