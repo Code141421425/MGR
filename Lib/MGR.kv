@@ -1,0 +1,508 @@
+
+<BackgroundColor@Widget>
+    background_color: 1, 1, 0, 0.5
+    canvas.before:
+        Color:
+            rgba: root.background_color
+        Rectangle:
+            size: self.size
+            pos: self.pos
+# Now you can simply Mix the `BackgroundColor` class with almost any other widget... to give it a background.
+<BackgroundLabel@Label+BackgroundColor>
+    background_color: 0.3, 0.6, 0.6, 1
+<BackgroundButton@Button+BackgroundColor>
+    background_color: 1, 0, 1, 1
+    # Default the background color for this label
+    # to r 0, g 0, b 0, a 0
+# Use the BackgroundLabel any where in your kv code like below
+
+<Controller>
+    cols:2
+    rows:2
+
+    GridLayout:
+        cols:2
+        width: 680
+        height: 500
+        size_hint_x:None
+        size_hint_y:None
+
+        ScriptManager
+            id:scriptManager
+        ExecuteList
+            id:executeList
+    
+    ScriptSettings
+        id:scriptSettings
+    Log
+    ScriptExecute
+
+<RecycleViewItem>:
+    height:"48sp"
+    size_hint_y:None
+
+    canvas:
+        Color:
+            rgb:.3,.8,.8 
+                        
+        Rectangle:
+            pos:self.pos
+            size:self.width,1
+
+        Rectangle:
+            pos:self.pos
+            size:10,self.height
+
+    BoxLayout:
+        padding:"5dp"
+
+        BoxLayout:
+            padding:5
+            orientation:'vertical'
+
+            Label:
+                text:root.script_title   
+                halign: 'left'
+                width:200
+                height:30
+                size_hint_x:None
+                text_size:self.width-10,None
+                shorten:True
+                shorten_from:"right"
+
+            Label:
+                text:root.script_args
+                font_size:12                
+                text_size:self.width-10,None                
+                shorten:True
+                shorten_from:"right"
+                        
+        Button:
+            text:"Single\nExecute"   
+            width:80 
+            size_hint_x:None
+            on_release:app.handle_singleExecute(root)
+
+        Button:
+            text:"edit"         
+            size_hint_x:None
+            width:self.height+10
+            on_release:root.call_ScriptArgsEditPopup(root)
+
+        Button:
+            text:">"
+            size_hint_x:None
+            width:self.height-10
+            on_release:app.handle_script_selected(root)
+            disabled:root.is_selected
+           # state: "normal"
+
+<ScriptEditItem>
+    orientation:'horizontal'
+    valign:"top"
+    height:30
+    size_hint_y:None
+
+    TextInput:        
+        id:argsName_input
+        text:root.argsName
+        font_size:14
+    TextInput:
+        id:argsCount_input
+        text:root.argsCount
+        font_size:14
+    
+    Button:
+        text:"-"
+        width:self.height
+        height:30
+        size_hint_x:None
+        on_release:root.handle_reduceItem(root)
+
+            
+
+
+<ScriptArgsEditPopup>:    
+    size:400,300
+    size_hint:None,None
+    auto_dismiss: False
+    title: '-'
+    
+
+    BoxLayout:
+        orientation:'horizontal'
+
+        BoxLayout:            
+            orientation:'vertical'
+            width:320
+            size_hint_x:None
+            padding:5
+            ssize_hint_x:None
+
+            BoxLayout:
+                orientation:'horizontal'
+                height:30
+                size_hint_y:None
+                Label:
+                    text:"ArgsName"
+                Label:
+                    text:"ArgsCount"
+
+            BoxLayout:        
+                id:scriptEdit_itemList
+                orientation:'vertical'      
+                valign:"top"          
+ 
+
+            Button:
+                height:30
+                text:"+"
+                size_hint_y:None
+                on_release:root.handle_addItems()
+ 
+
+        BoxLayout:
+            orientation:'vertical'
+            Button:
+                text: 'Save'
+                on_press: root.handle_saveArgs()
+
+            Button:
+                text:"Cancel"
+                on_release: root.dismiss()
+
+
+
+        
+
+<ScriptManager>
+    id: scriptManager
+    orientation:"vertical"
+    width:380
+    size_hint_x:None
+
+    BackgroundLabel:
+        text:"ScriptManager"
+        background_color:.3,.3,.3,1
+        height:36
+        size_hint_y:None
+
+    BoxLayout:
+        orientation:"horizontal"
+        height:'26dp'
+        size_hint_y:None
+
+        BackgroundLabel:
+            valign:"middle"
+            text:"Games: "
+            background_color: .5, .5, .5,1
+            width:'70dp'
+            size_hint_x:None
+
+
+        Button:
+            id:dropdown_mainBtn
+            text:root.selectedGame
+            size_hint_x:None
+            width:200
+            on_press:root.refresh_DropDownList()
+            on_release:dropdown.open(self)
+            
+        
+        DropDown:
+            id:dropdown
+            on_select:root.handle_DropDownSelect()
+
+
+
+    RecycleView:
+        data:root.data_for_scriptList
+        viewclass:"RecycleViewItem"
+        RecycleBoxLayout:
+            default_size:None,dp(56)
+            default_size_hint:1,None
+            size_hint_y:None
+            height:self.minimum_height
+            orientation:"vertical"
+            spacing:dp(2)
+
+
+<SingleExecutePopUp>
+    size_hint:.4,.35
+
+    BoxLayout:
+        orientation:'vertical'
+        padding:5
+        size_hint_y:1
+        valign: "top"
+
+        Label:
+            text:"Progression: {}%".format(str(pb.value))
+            size_hint_y:.8
+            valign:"middle"
+
+        ProgressBar:        
+            id:pb
+            height:16
+            size_hint_y:None
+            size_hint_x:1
+            value:root.now_progress
+            
+        Label:
+            id:passTime
+            text:"Passed time: {}:{}".format(int((app.time - root.startTime)/60),int(app.time - root.startTime)%60)
+            valign:'top'
+            size_hint_y:1
+            
+            
+        BoxLayout:
+            orientation:'horizontal'
+            valign:"bottom"
+            size_hint_y:.8
+            
+            Button:
+                text:"Stop"
+
+            Button:
+                text:"Close"
+                on_release:root.dismiss()
+
+<ExecuteList>
+    orientation:"vertical"
+    width:300
+    size_hint_x:None
+
+    BackgroundLabel:
+        text:"Prepare for Execute"
+        valign:"top"
+        height:36
+        size_hint_y:None    
+        background_color: .4, .4, .4,1
+
+    BoxLayout:
+        height:32
+        size_hint_y:None
+        orientation:'horizontal'
+
+        canvas:
+            Color:
+                rgb:.8,.4,.4 
+
+            Rectangle:
+                pos:self.pos
+                size: self.width,2
+
+        Label:
+            id:scriptCount
+            text:"Scripts: {}/{}".format(root.accomplishedScriptNumber, len(root.data))
+
+        Label:
+            id:timeCounter
+            text:"Times: {}:{}".format(int((app.time - root.startTime)/60),int(app.time - root.startTime)%60)
+        
+
+    RecycleView:
+        id:executeList_RecycleView
+        data:root.data_for_ExecuteList
+        viewclass:"ExecuteListRecycleViewItem"
+        RecycleBoxLayout:
+            default_size:None,dp(42)
+            default_size_hint:1,None
+            size_hint_y:None
+            height:self.minimum_height
+            orientation:"vertical"
+            spacing:dp(2)
+
+    
+
+    BoxLayout:
+        height:60
+        size_hint_y:None
+        Button:
+            text:"SaveList"
+            on_release:root.call_saveListPopUp()
+
+        Button:
+            text:"LoadList"
+            on_release:root.call_loadListPopUp()
+
+
+
+<ExecuteListRecycleViewItem>:
+    height:20
+    orientation:'vertical'
+    size_hint_y:None
+    padding:3
+
+    # canvas:
+    #     Color:
+    #         rgb:.8,.3,.8 
+                        
+    #     Rectangle:
+    #         pos:self.pos
+    #         size:self.width,1
+
+    #     Rectangle:
+    #         pos:[self.pos[0]+self.width-5,self.pos[1]]
+    #         size:5,self.height
+
+    BoxLayout:
+        padding:2
+
+        Button:
+            text:"<"
+            size_hint_x:None
+            width:self.height
+            on_release:app.handle_script_selected_cancel(root)
+            #state: "up"
+
+        BoxLayout:
+            padding:5
+            orientation:'horizontal'
+
+            Label:
+                text:root.script_title   
+                halign: 'left'
+                width:120
+                height:20
+                size_hint_x:None
+                text_size:self.width-10,None
+                max_lines:2
+                line_height:0.8
+
+            Label:
+                text:root.script_args
+                font_size:12                
+                text_size:self.width-10,None                
+                max_lines:2
+        
+    ProgressBar:
+        id:pb
+        height:2
+        size_hint_y:None
+        value:root.now_progress
+
+<SaveListPopUp>
+    size_hint:.4,.3
+
+    BoxLayout:
+        orientation: 'vertical'
+
+        Label:
+            text:"Input savelist's name :"
+            shorten_from:"right" 
+            size_hint_x:0.5                   
+
+        TextInput:            
+            id:savelistName
+            size_hint_y:None
+            text:"lastConfig"
+            height:32
+            multiline:False
+
+        Label:
+            height:5
+            size_hint_y:None
+            
+        BoxLayout:
+            orientation:'horizontal'
+            padding:4
+            height:42
+            size_hint_y:None
+
+            Button:
+                text:"Save"
+                on_release:app.handle_saveExecuteList(root)
+
+            Button:
+                text:"Cancel"
+                on_release:root.dismiss()
+
+<LoadListPopUp>
+    size_hint:.4,.4
+    pos:0,0
+
+    BoxLayout:
+        id:configLoadList
+        orientation:'vertical'
+
+        Label:
+            text:"SettingList :"
+            height:30
+            size_hint_y:None
+
+
+        RecycleView:
+            data:root.data_for_loadConfigList
+            viewclass:"LoadListPopUpItem"
+            RecycleBoxLayout:
+                default_size:None,dp(30)
+                default_size_hint:1,None
+                size_hint_y:None
+                height:self.minimum_height
+                orientation:"vertical"
+                spacing:dp(2)
+
+            
+
+<LoadListPopUpItem>
+    orientation:'horizontal'
+    height:48
+    size_hint_y:None
+
+    Label:
+        text:root.config_title
+
+    Button:
+        text:"Load"
+        on_release:app.handle_loadExecuteList(root)
+
+
+<ScriptSettings>
+    size_hint_y:None
+    size_hint_x:1
+    orientation:'vertical'
+    height:500
+
+    BackgroundLabel:
+        text:"ScriptSettings"
+        height:36
+        valign:"top"
+        size_hint_y:None
+
+    BoxLayout:
+        orientation:'horizontal'
+        size_hint_y:.1
+        Label:
+            text:"Start with \n StarUp.air"
+
+        Switch:
+            id:switch_startWithStarUp
+            active:False
+
+
+
+<Log>
+    size_hint_x:None
+    width:680
+    orientation:"vertical"
+
+    BackgroundLabel:
+        height:18
+        text:"Log"
+        halign:"left"  
+        font_size:16
+        size_hint_y:None
+        background_color:.3,.3,.3,1
+
+    CodeInput:
+
+<ScriptExecute>
+    Button:
+        text:"Script\nExecute"
+        size_hint:1,1
+        on_release:app.handle_ExecuteListRun()
+    Button:
+        text:"Stop"
+        on_release:app.test()
+

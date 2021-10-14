@@ -60,6 +60,10 @@ class RandomPosTime:
         elif scale == -1:
             variableTime = customTime
 
+        # 如果目标时间，小于变量，则将变量置为目标时间
+        if tarTime < variableTime:
+            variableTime = tarTime
+
         tarTime = tarTime + random.uniform(-variableTime, variableTime)
 
         return tarTime

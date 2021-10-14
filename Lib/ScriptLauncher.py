@@ -85,10 +85,11 @@ class GameTearDown(ScriptLauncher):
         self.ADB_PATH = os.path.abspath(__file__ + "\\..") + "\\ADB\\"
 
     def runScript(self):
-        time.sleep(2.7)
-        cmd = "%sadb.exe shell am force-stop %s" % (self.ADB_PATH, mapping[self.gameName])
-        print(cmd)
-        os.system(cmd)
+        pass
+        # time.sleep(2.7)
+        # cmd = "%sadb.exe shell am force-stop %s" % (self.ADB_PATH, mapping[self.gameName])
+        # print(cmd)
+        # os.system(cmd)
 
 
 if __name__ == '__main__':

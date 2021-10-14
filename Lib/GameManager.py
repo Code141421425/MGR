@@ -5,25 +5,44 @@ from Lib.BaseClass import Script
 from Lib.Logger import MGRLogger
 from Lib.Notice import *
 
+def singleton(cls):
+    instances = {}
 
+    def _singleton(*args, **kwargs):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+
+    return _singleton
+
+
+@singleton
 class GameManager:
     scriptFactory = None
     scriptLauncherList = []
     ifStartApp = False
+    app = None
 
-    def __init__(self, dict=None, ifStartApp=True):
+    def __init__(self, dict=None, ifStartApp=True,app=None):
         self.scriptFactory = ScriptsLauncherFactory()
         self.ifStartApp = ifStartApp
         self.logger = MGRLogger().logger
         if dict:
             self.setScriptLauncherList(dict)
 
-    def setScriptLauncherList(self, dict):
+        if app:
+            self.app = app
+
+    def setScriptLauncherList(self, dict, is_startWith=None):
         result = []
+
+        if is_startWith != None:
+            self.ifStartApp = is_startWith
 
         # 将传入字典，按照每个游戏一个List的方式，实例化，之后存入scriptLauncherList
         for d in dict:
-             result.append(ScriptsLauncherFactory().createScriptLauncherSuit(dict[d], self.ifStartApp))
+             result.append(ScriptsLauncherFactory().
+                           createScriptLauncherSuit(dict[d], self.ifStartApp))
 
         self.scriptLauncherList = result
 
@@ -39,10 +58,12 @@ class GameManager:
                 except:
                     # 暂停游戏，并通知
                     self.logger.error("Error occur")
-                    DingDingNotice().SendTextNotice("脚本发生错误，需要人工接管", True)
+                    #DingDingNotice().SendTextNotice("脚本发生错误，需要人工接管", True)
                     os.system("pause")
 
                 MGRLogger().logger.info(f"{sl.scriptName} is finished")
+                self.app.one_script_done(sl.scriptName)
+        self.app.countOver = True
 
     def singleScriptStart(self, scriptTypeCode, gameName, **kwargs):
         if scriptTypeCode == 0:
@@ -56,6 +77,9 @@ class GameManager:
 
         self.scriptFactory.createSingleScriptLauncher(
             scriptType,  gameName, **kwargs).runScript()
+
+    def sync_ScriptProcess_GM_to_UI(self, scriptName, process):
+        self.app.sync_ScriptProcess(scriptName, process)
 
 
 if __name__ == "__main__":

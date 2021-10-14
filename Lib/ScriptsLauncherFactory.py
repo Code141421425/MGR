@@ -30,6 +30,7 @@ class ScriptsLauncherFactory:
         # 凭gameName，增加游戏结束脚本
             result.append(self.createSingleScriptLauncher(self.TEARDOWN_CLASS_NAME,
                                                           gameName))
+        gameDict["GameName"] = gameName
 
         return result
 

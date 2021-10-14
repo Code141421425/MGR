@@ -1,9 +1,15 @@
 import os,sys
 from airtest.core.api import *
 from ScriptSupport import RandomPosTime
+from Logger import MGRLogger
+from GameManager import GameManager
 
 
 class Operation:
+    def __init__(self, args=None):
+        if args:
+            self.Execute(args)
+
     @staticmethod
     def _ListHandle(target, operated, filler=None):
         if not operated:
@@ -47,23 +53,71 @@ class Swipe(Operation):
         pass
 
 
+class TryChain(Operation):
+    def __init__(self, tar, tryList):
+        self.Execute(tar, tryList)
+
+    # 如果没有找到目标，就尝试列表中的下一个行为组
+    def Execute(self, tar, tryList):
+        success = False
+
+        for t in tryList:
+            if not exists(tar):
+                # try:
+                # 如果输入的是一张图：就查点这张图
+                if type(t) != list:
+                    ExistsAndTouch(t)
+                elif type(t) == list:
+                    # 如果输入的是一个列表：就查点这个列表
+                    if type(t[0]) != list:
+                        ExistsAndTouchSuit().Execute(t)
+                    # 如果输入的是两个列表：就查第1个列表，点第2个列表的位置
+                    else:
+                        ExistsAndTouchSuit().Execute(t[0], t[1])
+                else:
+                    MGRLogger.logger.Error("Try Chain Error to match")
+            # except Exception as e:
+            #     print(e)
+            else:
+                success = True
+                break
+
+        if not success:
+            MGRLogger().logger.error("Fail to get target in TryList")
+
+
+class TouchUntilTargetDisappear(Operation):
+    def Execute(self, target):
+        while exists(target):
+            WaitAndTouch(target)
+            sleep(4)
+
+        print("Done")
+
+
 class ExistsAndTouch(WaitAndTouch):
     _DEFAULT_TRY_TIMES = 2
     _DEFAULT_SLEEP_TIME = 1
 
-    def Execute(self, targetTemplate, pos,
+    def Execute(self, targetTemplate, pos=None,
                 sleep_time=_DEFAULT_SLEEP_TIME, tryTimes=_DEFAULT_TRY_TIMES):
+        print(targetTemplate)
+        print(pos)
+
+        # 如果没有需要点击的目标，就点击需要寻找的目标
+        if not pos:
+            pos = targetTemplate
 
         isFounded = False
 
         if targetTemplate:
-            # 如果存在就开始找
+            # 如果存在需要匹配的目标，就开始找
             for i in range(tryTimes):
                 if exists(targetTemplate):
                     isFounded = True
                     break
         else:
-            # 不存在，就直接点
+            # 不存在，就直默认找到了，直接点击
             isFounded = True
 
         if not isFounded:
@@ -73,7 +127,10 @@ class ExistsAndTouch(WaitAndTouch):
 
 
 class ExistsAndTouchSuit(ExistsAndTouch):
-    def Execute(self, targetTemplateList, touchPosList, sleep_timeList=None, tryTimesList=None):
+    def Execute(self, targetTemplateList, touchPosList=None, sleep_timeList=None, tryTimesList=None):
+        if not touchPosList:
+            touchPosList = targetTemplateList
+
         tryTimesList = self._ListHandle(targetTemplateList, tryTimesList, self._DEFAULT_TRY_TIMES)
         sleep_timeList = self._ListHandle(targetTemplateList, sleep_timeList, self._DEFAULT_SLEEP_TIME)
 
@@ -84,7 +141,6 @@ class ExistsAndTouchSuit(ExistsAndTouch):
 
 
 class WaitAndTouchSuit(WaitAndTouch):
-
     def Execute(self, posList,  sleep_timeList=None, templateList=None):
         # 将所有的数组，处理成统一posList的长度
         templateList = self._ListHandle(posList, templateList)
@@ -152,9 +208,11 @@ class GameStart(ScriptTemplate):
 
 class Battle(ScriptTemplate):
     battleTimes = []
+    __nowTimes = 0
 
     def __init__(self, battleTimes=1):
         self.battleTimes = battleTimes
+        self.__nowTimes = 0
 
     def ToBattleField(self):
         pass
@@ -170,8 +228,14 @@ class Battle(ScriptTemplate):
 
         for i in range(self.battleTimes):
             self.BattleOnce()
+            self.__nowTimes += 1
+            self.sync_process()
 
         self.BackToMainCity()
+
+    def sync_process(self):
+        GameManager().sync_ScriptProcess_GM_to_UI(self.__class__.__name__, self.__nowTimes *100/self.battleTimes)
+
 
 
 class SimpleQuest(ScriptTemplate):
@@ -193,8 +257,6 @@ class SimpleQuest(ScriptTemplate):
         self.ExecuteSimpleQuest()
         self.BackToMainCity()
         self.InMainCity()
-
-
 
 
 if __name__ == "__main__":

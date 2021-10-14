@@ -25,6 +25,9 @@ class GamesDict:
         self.gameDict[gameName][script.scriptName]["scriptType"] = script.scriptType
         self.gameDict[gameName][script.scriptName]["scriptArgs"] = script.scriptArgs
 
+    def ShowAll(self):
+        for k in self.gameDict:
+            print("{}:{}".format(k, self.gameDict[k]))
 
 if __name__ == "__main__":
     pass
