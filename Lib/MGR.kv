@@ -17,25 +17,31 @@
 # Use the BackgroundLabel any where in your kv code like below
 
 <Controller>
-    cols:2
-    rows:2
+    cols:4
+    rows:1
+
+
+
+    ScriptManager
+        id:scriptManager
+    ExecuteList
+        id:executeList
+
 
     GridLayout:
-        cols:2
-        width: 680
-        height: 500
+        rows:2
+        cols:1
+        width:250
         size_hint_x:None
-        size_hint_y:None
+        
+        ScriptSettings
+            id:scriptSettings
 
-        ScriptManager
-            id:scriptManager
-        ExecuteList
-            id:executeList
-    
-    ScriptSettings
-        id:scriptSettings
+        ScriptExecute
+
     Log
-    ScriptExecute
+        id:logPanel
+
 
 <RecycleViewItem>:
     height:"48sp"
@@ -228,7 +234,7 @@
 
 
 <SingleExecutePopUp>
-    size_hint:.4,.35
+    size_hint:.3,.35
 
     BoxLayout:
         orientation:'vertical'
@@ -250,7 +256,7 @@
             
         Label:
             id:passTime
-            text:"Passed time: {}:{}".format(int((app.time - root.startTime)/60),int(app.time - root.startTime)%60)
+            text:"Passed time: " + app.passTime
             valign:'top'
             size_hint_y:1
             
@@ -262,6 +268,7 @@
             
             Button:
                 text:"Stop"
+                on_release:app.handle_stopNowProcess()
 
             Button:
                 text:"Close"
@@ -298,7 +305,7 @@
 
         Label:
             id:timeCounter
-            text:"Times: {}:{}".format(int((app.time - root.startTime)/60),int(app.time - root.startTime)%60)
+            text:"Times: " + app.passTime
         
 
     RecycleView:
@@ -333,19 +340,7 @@
     orientation:'vertical'
     size_hint_y:None
     padding:3
-
-    # canvas:
-    #     Color:
-    #         rgb:.8,.3,.8 
-                        
-    #     Rectangle:
-    #         pos:self.pos
-    #         size:self.width,1
-
-    #     Rectangle:
-    #         pos:[self.pos[0]+self.width-5,self.pos[1]]
-    #         size:5,self.height
-
+    
     BoxLayout:
         padding:2
 
@@ -419,7 +414,7 @@
                 on_release:root.dismiss()
 
 <LoadListPopUp>
-    size_hint:.4,.4
+    size_hint:.3,.6
     pos:0,0
 
     BoxLayout:
@@ -459,10 +454,10 @@
 
 
 <ScriptSettings>
-    size_hint_y:None
+    size_hint_y:1
     size_hint_x:1
-    orientation:'vertical'
-    height:500
+    orientation:'vertical'    
+
 
     BackgroundLabel:
         text:"ScriptSettings"
@@ -472,7 +467,8 @@
 
     BoxLayout:
         orientation:'horizontal'
-        size_hint_y:.1
+        size_hint_y:0.2
+        height:60
         Label:
             text:"Start with \n StarUp.air"
 
@@ -480,11 +476,48 @@
             id:switch_startWithStarUp
             active:False
 
+    BoxLayout:
+        orientation:'horizontal'
+        size_hint_y:0.2
+        height:60
+        Label:
+            text:"Save Script log"
+        Switch:
+            id:switch_tryOnce
+            active:False
+
+    BoxLayout:
+        orientation:'horizontal'
+        size_hint_y:0.2
+        height:60
+        Label:
+            text:"Try Once"
+
+        Switch:
+            active:False
+    
+    BoxLayout:
+        orientation:'horizontal'
+        size_hint_y:0.2
+        height:60
+        Label:
+            text:"Clear all script\nin Excutelist"
+        GridLayout:    
+            rows:1        
+            size_hint_y:0.5
+            pos_hint:{'top': 0.6}       
+            pos:0,self.parent.height/2-self.height/2             
+            Button:             
+                text:"clear"
+                on_release:app.handle_clearExecuteList()
+
+    BoxLayout:
+        size_hint_y:.8
+
 
 
 <Log>
-    size_hint_x:None
-    width:680
+    size_hint_x:1
     orientation:"vertical"
 
     BackgroundLabel:
@@ -496,13 +529,24 @@
         background_color:.3,.3,.3,1
 
     CodeInput:
+        id:logShow
+        padding:2
+        font_size:12
+        text:root.logData
+        readonly:True
+
+        
 
 <ScriptExecute>
+    size_hint_y:.2
     Button:
         text:"Script\nExecute"
-        size_hint:1,1
+        size_hint:1,None
+        height:120
         on_release:app.handle_ExecuteListRun()
     Button:
+        size_hint:1,None
+        height:120
         text:"Stop"
-        on_release:app.test()
+        on_release:app.test()#handle_stopNowProcess()
 

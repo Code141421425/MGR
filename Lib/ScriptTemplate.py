@@ -87,9 +87,12 @@ class TryChain(Operation):
 
 
 class TouchUntilTargetDisappear(Operation):
-    def Execute(self, target):
+    # DO: 一直操作，直到目标消失
+    def Execute(self, target, actionList=None):
+        if not actionList:
+            actionList = [target]
         while exists(target):
-            WaitAndTouch(target)
+            WaitAndTouchSuit(actionList)
             sleep(4)
 
         print("Done")
@@ -200,8 +203,10 @@ class GameStart(ScriptTemplate):
 
         self.Login()
 
-        if not self.passCloseNotice:
-            self.CloseNotice()
+        # 如果在主界面，就不用尝试关闭通知了
+        if not exists(self.mainCityTemplate):
+            if not self.passCloseNotice:
+                self.CloseNotice()
 
         self.InMainCity()
 
@@ -234,15 +239,21 @@ class Battle(ScriptTemplate):
         self.BackToMainCity()
 
     def sync_process(self):
-        GameManager().sync_ScriptProcess_GM_to_UI(self.__class__.__name__, self.__nowTimes *100/self.battleTimes)
-
+        try:
+            GameManager().sync_ScriptProcess_GM_to_UI(self.__class__.__name__, self.__nowTimes *100/self.battleTimes)
+        except:
+            pass
 
 
 class SimpleQuest(ScriptTemplate):
     mainCity = None
 
-    def __init__(self, mainCity):
-        self.mainCity = mainCity
+    def __init__(self, mainCity=None):
+        if mainCity:
+            self.mainCity = mainCity
+
+    def ToQuestField(self):
+        pass
 
     def ExecuteSimpleQuest(self):
         pass
@@ -251,9 +262,11 @@ class SimpleQuest(ScriptTemplate):
         pass
 
     def InMainCity(self):
-        wait(self.mainCity)
+        if self.mainCity:
+            wait(self.mainCity)
 
     def runScriptTemplate(self):
+        self.ToQuestField()
         self.ExecuteSimpleQuest()
         self.BackToMainCity()
         self.InMainCity()

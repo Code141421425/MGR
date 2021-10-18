@@ -1,5 +1,5 @@
-import os, threading
-from time import time
+import os, threading,time
+from functools import partial
 from kivy.config import Config
 from kivy.app import App
 from kivy.uix.button import Button
@@ -12,7 +12,7 @@ from kivy.clock import Clock
 from FileWirter import FileWriter
 from Logger import MGRLogger
 from GameManager import GameManager
-from BaseClass import GamesDict, Script
+from BaseClass import GamesDict, Script,stop_thread
 
 
 PROJECT_PATH = os.path.abspath(__file__+"..\\..\\..\\")
@@ -29,19 +29,12 @@ class Controller(GridLayout):
         unit.is_selected = True
 
     def reduceToExecute(self, unit):
-        partner = None
-        if unit.partner:
-            partner = unit.partner
-            unit.partner.is_selected = False
-
-        self.ids.executeList.data.remove({"partner": partner,
-                                         "is_finish": False,
-                                         "script_title": unit.script_title,
-                                         "script_args": unit.script_args,
-                                         "now_progress": 0,})
+        self.ids.executeList.reduce_from_execute(unit.script_title)
+        self.ids.scriptManager.item_able(unit.script_title)
 
     def refreshExecuteList(self, config=None):
         self.ids.executeList.refreshExecuteList(config)
+        self.ids.scriptManager.refresh_ScriptList()
 
 
 class RecycleViewItem(BoxLayout):
@@ -124,41 +117,53 @@ class ScriptManager(BoxLayout):
         self.generate_DropDownList()
 
     def refresh_ScriptList(self):
-        self.data_for_scriptList = AliasProperty(self._get_data_for_scriptList,
-                                        bind=["data"])
+        self.data = self.generate_data_for_scriptList()
 
     def handle_DropDownSelect(self):
         print(self.ids.dropdown_mainBtn.text)
         self.selectedGame = self.ids.dropdown_mainBtn.text
         # 刷新数据
-        self.data = self.get_data_for_scriptList()
+        self.refresh_ScriptList()
 
     def get_data_for_scriptList(self):
+        return self.data
+
+    def generate_data_for_scriptList(self):
         data = []
-        scriptsList = os.listdir(PROJECT_PATH + "\\Scripts\\" + self.selectedGame)
+        scriptsList_FullName = os.listdir(PROJECT_PATH + "\\Scripts\\" + self.selectedGame)
+        scriptsList = []
+        for scriptName in scriptsList_FullName:
+            if scriptName[-4:] == ".air":
+                scriptsList.append(scriptName[:-4])
+
         scriptsArgsDict = FileWriter().LoadAllScriptDate_OptionString()
+        selectList = MGRApp().get_if_in_executeList(scriptsList)
 
-        for scriptsName in scriptsList:
-            if scriptsName[-4:] == ".air":
-                scriptsName = scriptsName[:-4]
-                scriptsArgs = ""
-                if scriptsArgsDict.get(scriptsName):
-                    scriptsArgs = scriptsArgsDict[scriptsName]
+        for i in range(len(scriptsList)):
+            scriptsArgs = ""
+            if scriptsArgsDict.get(scriptsList[i]):
+                scriptsArgs = scriptsArgsDict[scriptsList[i]]
 
-                data.append({"script_title": scriptsName,
-                             "is_selected": False,
-                             "script_args": scriptsArgs,
-                             })
+            data.append({"script_title": scriptsList[i],
+                         "is_selected": selectList[i],
+                         "script_args": scriptsArgs,
+                         })
 
         return data
 
     data_for_scriptList = AliasProperty(get_data_for_scriptList,
                                         bind=["data"])
 
+    def item_able(self, script_title, state=True):
+        for scriptDict in self.data:
+            if script_title == scriptDict["script_title"]:
+                scriptDict['is_selected'] = state
+                self.refresh_ScriptList()
+                break
+
 
 class SingleExecutePopUp(Popup):
     script_title = ""
-    startTime = -1
     now_progress = 0
 
     def __init__(self, script_title=None, **kwargs):
@@ -166,12 +171,32 @@ class SingleExecutePopUp(Popup):
         if script_title:
             self.script_title = script_title
 
-    def prepare_to_open(self, script_title, startTime):
+    def prepare_to_open(self, script_title):
         self.script_title = script_title
-        self.startTime = startTime
         self.title = script_title + "——Single Execute"
         self.ids.pb.value = 0
-        self.ids.passTime = "0:0"
+
+
+class TimeCounter:
+    startTime = None
+
+    def __init__(self, startTime=None):
+        if startTime:
+            self.startTime = startTime
+        self.stop = False
+        self.now_time = None
+
+    def return_pass_time(self):
+        if not self.stop:
+            self.now_time = time.time()
+        else:
+            pass
+
+        if not self.startTime:
+            return "0:0"
+        else:
+            return "{}:{}".format(int((self.now_time - self.startTime) / 60),
+                                  int(self.now_time - self.startTime) % 60)
 
 
 class ExecuteList(BoxLayout):
@@ -234,6 +259,27 @@ class ExecuteList(BoxLayout):
 
     data_for_ExecuteList = AliasProperty(get_data_for_executeList,bind=["data"])
 
+    def return_if_select_data(self, targetList):
+        # 返回目标,在执行列表中是否出现的列表
+        result = []
+        executeList_scriptTitle = []
+        for script in self.data:
+            executeList_scriptTitle.append(script["script_title"])
+
+        for tar in targetList:
+            if executeList_scriptTitle.count(tar) != 0:
+                result.append(True)
+            else:
+                result.append(False)
+
+        return result
+
+    def reduce_from_execute(self, script_title):
+        for scriptDict in self.data:
+            if script_title == scriptDict["script_title"]:
+                self.data.remove(scriptDict)
+                break
+
 
 class ExecuteListRecycleViewItem(BoxLayout):
     partner = None
@@ -270,7 +316,10 @@ class ScriptSettings(BoxLayout):
 
 
 class Log(BoxLayout):
-    pass
+    logData = StringProperty()
+
+    def add_log(self, log):
+        self.logData +=log+"\n"
 
 
 class ScriptExecute(BoxLayout):
@@ -290,33 +339,36 @@ def singleton(cls):
 
 @singleton
 class MGRApp(App):
-    runnerProcess = None
     gm = None
-    time = NumericProperty()
     singleExecutePopUp = None
     executeMode = None
     countOver = False
+    nowThreading = None
+    timeCounter = None
+    passTime = StringProperty()
 
     def build(self):
         self.root = Controller()
         self.gm = GameManager(app=self)
         self.singleExecutePopUp = SingleExecutePopUp()
+        self.timeCounter = TimeCounter()
         Clock.schedule_interval(self._update_clock, 1)
+
+        self.refresh_ManagerList()
 
         return self.root
 
     def handle_script_selected(self, unit):
         self.root.addToExecute(unit)
 
-
     def handle_script_selected_cancel(self, unit):
         self.root.reduceToExecute(unit)
 
     def refresh_ManagerList(self):
-        self.root.ids.scriptManager.data = ScriptManager().get_data_for_scriptList()
+        self.root.ids.scriptManager.refresh_ScriptList()
 
     def refresh_ExecuteList(self):
-        pass
+        self.root.refreshExecuteList()
 
     def handle_saveExecuteList(self, item=None):
         saveName = None
@@ -355,23 +407,25 @@ class MGRApp(App):
         # 启动单独执行弹窗
         self.countOver = False
         self.executeMode = "Single"
-        self.singleExecutePopUp.prepare_to_open(item.script_title, time())
+        self.singleExecutePopUp.prepare_to_open(item.script_title)
+        self.timeCounter = TimeCounter(time.time())
         self.singleExecutePopUp.open()
-
-        # 单独执行脚本
         gdt = GamesDict()
+
         gdt.AddScript(item.script_title.split("_")[0],
                       Script(item.script_title, self.__str_scriptArgs_toInt(item.script_args)))
 
         self.gm.setScriptLauncherList(gdt.gameDict, False)
-        threading.Thread(target=self.gm.scriptsStart).start()
+        self.nowThreading = threading.Thread(target=self.gm.scriptsStart)
+        self.nowThreading.start()
         print("Single Done")
 
     def handle_ExecuteListRun(self):
         gdt = GamesDict()
         self.executeMode = "List"
+        self.countOver = False
         self.root.ids.executeList.accomplishedScriptNumber = 0
-        self.root.ids.executeList.startTime = time()
+        self.timeCounter = TimeCounter(time.time())
         is_startWith = self.root.ids.scriptSettings.ids.switch_startWithStarUp.active
 
         for item in self.root.ids.executeList.data:
@@ -381,7 +435,8 @@ class MGRApp(App):
                                  self.__str_scriptArgs_toInt(item["script_args"])))
 
         self.gm.setScriptLauncherList(gdt.gameDict, is_startWith)
-        threading.Thread(target=self.gm.scriptsStart).start()
+        self.nowThreading = threading.Thread(target=self.gm.scriptsStart)
+        self.nowThreading.start()
 
     def sync_ScriptProcess(self, scriptTitle, scriptProcess):
         if self.executeMode == "Single":
@@ -402,21 +457,31 @@ class MGRApp(App):
             self.root.ids.executeList.accomplishedScriptNumber += 1
             self.root.ids.executeList.refreshScriptCount()
 
-    def test(self):
-        print(233)
-        for item in self.root.ids.executeList.data:
-            if item["script_title"] == "TestGame_2":
-                item["now_progress"] = 50
-                break
-        #self.root.ids.executeList.ids.executeList_RecycleView.refresh_from_data()
+    def handle_stopNowProcess(self):
+        stop_thread(self.nowThreading)
+
+    def handle_clearExecuteList(self):
+        self.root.ids.executeList.data = []
+
+    def add_AddLog(self, log):
+        self.root.ids.logPanel.add_log(log)
+
+    def get_if_in_executeList(self, targetList):
+        return self.root.ids.executeList.return_if_select_data(targetList)
 
     def _update_clock(self, dt):
         if not self.countOver:
-            self.time = time()
+            self.passTime = self.timeCounter.return_pass_time()
+
+
+    def test(self):
+        print(233)
+
+
 
 
 if __name__ == "__main__":
-    Config.set('graphics', 'width', '900')
+    Config.set('graphics', 'width', '1550')
     Config.set('graphics', 'height', '650')
 
     p = threading.Thread(target=MGRApp().run)

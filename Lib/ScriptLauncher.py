@@ -2,10 +2,9 @@
 import argparse
 import os
 import time
-from Lib.AirtestCaseRunner import AirtestCase, run_script
+from AirtestCaseRunner import AirtestCase, run_script
 from GameSettings.PackageNameMapping import PackageNameMapping as mapping
 from airtest.core.api import *
-
 
 class ScriptLauncher(AirtestCase):
     gameName = ""

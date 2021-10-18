@@ -1,5 +1,4 @@
-from Lib.ScriptLauncher import *
-
+from ScriptLauncher import *
 
 class ScriptsLauncherFactory:
 

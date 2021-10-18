@@ -1,19 +1,9 @@
 import os
 
-from Lib.ScriptsLauncherFactory import ScriptsLauncherFactory
-from Lib.BaseClass import Script
-from Lib.Logger import MGRLogger
-from Lib.Notice import *
-
-def singleton(cls):
-    instances = {}
-
-    def _singleton(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-
-    return _singleton
+from ScriptsLauncherFactory import ScriptsLauncherFactory
+from BaseClass import *
+from Logger import MGRLogger
+from Notice import *
 
 
 @singleton
@@ -26,12 +16,15 @@ class GameManager:
     def __init__(self, dict=None, ifStartApp=True,app=None):
         self.scriptFactory = ScriptsLauncherFactory()
         self.ifStartApp = ifStartApp
-        self.logger = MGRLogger().logger
+
         if dict:
             self.setScriptLauncherList(dict)
 
         if app:
             self.app = app
+            self.logger = MGRLogger(app=app).logger
+        else:
+            self.logger = MGRLogger().logger
 
     def setScriptLauncherList(self, dict, is_startWith=None):
         result = []
@@ -55,6 +48,9 @@ class GameManager:
                 self.logger.info("=====>Script Start: "+sl.scriptName)
                 try:
                     sl.runScript()
+                except SystemExit:
+                    self.logger.info("Script force exit")
+                    break
                 except:
                     # 暂停游戏，并通知
                     self.logger.error("Error occur")
@@ -63,7 +59,8 @@ class GameManager:
 
                 MGRLogger().logger.info(f"{sl.scriptName} is finished")
                 self.app.one_script_done(sl.scriptName)
-        self.app.countOver = True
+        if self.app:
+            self.app.countOver = True
 
     def singleScriptStart(self, scriptTypeCode, gameName, **kwargs):
         if scriptTypeCode == 0:
@@ -83,5 +80,5 @@ class GameManager:
 
 
 if __name__ == "__main__":
-    gm = GameManager(dict)
+    gm = GameManager()
     gm.scriptsStart()

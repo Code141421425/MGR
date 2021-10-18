@@ -1,17 +1,7 @@
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
-
-
-def singleton(cls):
-    instances = {}
-
-    def _singleton(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-
-    return _singleton
+from BaseClass import singleton
 
 
 @singleton
@@ -20,7 +10,7 @@ class MGRLogger:
     logger = None
     LOG_PATH = os.path.abspath(__file__)+'/../../Log/'
 
-    def __init__(self, noticeType=None):
+    def __init__(self, noticeType=None,app=None):
         self.notice = noticeType
 
         self.logger = logging.getLogger("MGR_Logger")
@@ -35,12 +25,29 @@ class MGRLogger:
                                            "|%(filename)s: %(funcName)s (%(lineno)s) "
                                            "| %(message)s",
                                            datefmt="%Y-%m-%d %H:%M:%S")
+        self.shortFormatter = logging.Formatter("[%(levelname)-8s]%(asctime)s | %(message)s",
+                                           datefmt="%H:%M:%S")
 
         self.logger.addHandler(self.streamHandler)
         self.logger.addHandler(self.fileHandler)
         self.streamHandler.setFormatter(self.formatter)
         self.fileHandler.setFormatter(self.formatter)
 
+        if app:
+            self.appHandler = MGRHandler(app)
+            self.logger.addHandler(self.appHandler)
+            self.appHandler.setFormatter(self.shortFormatter)
+
+
+class MGRHandler(logging.Handler):
+    def __init__(self, app, **kwargs):
+        super(MGRHandler, self).__init__(**kwargs)
+        self.app = app
+
+    def emit(self, record):
+        msg = self.format(record)
+        print(msg)
+        self.app.add_AddLog(msg)
 
 if __name__ == "__main__":
     lg = MGRLogger().logger

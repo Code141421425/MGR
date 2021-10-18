@@ -1,6 +1,6 @@
 import json
 import requests
-from Lib.Logger import MGRLogger
+from Logger import MGRLogger
 
 
 class Notice:
