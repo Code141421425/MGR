@@ -12,7 +12,7 @@ from kivy.clock import Clock
 from FileWirter import FileWriter
 from Logger import MGRLogger
 from GameManager import GameManager
-from BaseClass import GamesDict, Script,stop_thread
+from BaseClass import GamesDict, Script,stop_thread,singleton
 
 
 PROJECT_PATH = os.path.abspath(__file__+"..\\..\\..\\")
@@ -21,11 +21,10 @@ PROJECT_PATH = os.path.abspath(__file__+"..\\..\\..\\")
 class Controller(GridLayout):
 
     def addToExecute(self, unit):
-        self.ids.executeList.data.append({"partner": unit,
-                                             "is_finish": False,
-                                             "script_title": unit.script_title,
-                                             "script_args": unit.script_args,
-                                             "now_progress": 0})
+        self.ids.executeList.data.append({"is_finish": False,
+                                          "script_title": unit.script_title,
+                                          "script_args": unit.script_args,
+                                          "now_progress": 0})
         unit.is_selected = True
 
     def reduceToExecute(self, unit):
@@ -33,7 +32,7 @@ class Controller(GridLayout):
         self.ids.scriptManager.item_able(unit.script_title)
 
     def refreshExecuteList(self, config=None):
-        self.ids.executeList.refreshExecuteList(config)
+        self.ids.executeList.refresh_ExecuteList_Data(config)
         self.ids.scriptManager.refresh_ScriptList()
 
 
@@ -51,35 +50,74 @@ class RecycleViewItem(BoxLayout):
 
 
 class ScriptArgsEditPopup(Popup):
+    data = ListProperty()
+    script_title = None
 
     def __init__(self, script_title=None, **kwargs):
-        super(ScriptArgsEditPopup, self).__init__(**kwargs)
-
         if script_title:
             # 读取ScriptSetting.ini中，改脚本的配置：
             # 如果有就增加items；没有就return
             scriptArgDict = FileWriter().LoadScriptData(script_title)
             self.script_title = script_title
-            if not scriptArgDict:
-                return
-            else:
-                for argsName in scriptArgDict:
-                    self.ids.scriptEdit_itemList.add_widget(
-                        ScriptEditItem(argsName, scriptArgDict[argsName], self))
+
+        super(ScriptArgsEditPopup, self).__init__(**kwargs)
+
+        if not scriptArgDict:
+            return
+        else:
+            for argsName in scriptArgDict:
+                self.ids.scriptEdit_itemList.add_widget(
+                    ScriptEditItem(argsName, scriptArgDict[argsName], self))
 
     # 存储脚本设置更改
     def handle_saveArgs(self):
-        saveData = {}
-        for item in self.ids.scriptEdit_itemList.children:
-            if item.ids.argsName_input.text != "":
-                saveData[item.ids.argsName_input.text] = item.ids.argsCount_input.text
-        FileWriter().SaveScriptData(self.script_title, saveData)
+        FileWriter().SaveScriptData(self.script_title, self.__get_now_ArgsData())
         MGRApp().refresh_ManagerList()
         MGRApp().refresh_ExecuteList()
         self.dismiss()
 
+    def __get_now_ArgsData(self):
+        data = {}
+        for item in self.ids.scriptEdit_itemList.children:
+            if item.ids.argsName_input.text != "":
+                data[item.ids.argsName_input.text] = item.ids.argsCount_input.text
+        return data
+
     def handle_addItems(self):
         self.ids.scriptEdit_itemList.add_widget(ScriptEditItem(fatherPopUp=self))
+
+    # def call_LoadScriptEditPopUp(self):
+    #     LoadListPopUp(self, "LoadListPopUpItem_ScriptEdit", "LoadScriptEditData",
+    #                   "TestGame_1").open()
+    #     print(self)
+
+    def Reload_ScriptEditItem(self, configDict):
+        self.ids.scriptEdit_itemList.clear_widgets()
+        for k in configDict:
+            self.ids.scriptEdit_itemList.add_widget(
+                ScriptEditItem(argsName=k, argsCount=configDict[k], fatherPopUp=self))
+
+    def get_data_for_loadConfigList(self):
+        print(self.script_title)
+        result = getattr(FileWriter(), "LoadScriptEditData")(loadArgs=self.script_title)
+        for r in result:
+            r["fatherPopUp"] = self
+        return result
+
+    data_for_loadConfigList = AliasProperty(get_data_for_loadConfigList, bind=["data"])
+
+    # def handle_scriptEdit_load(self, item):
+    #     self.Reload_ScriptEditItem(item.savedEditArgs_Dict)
+
+    def handle_scriptEdit_save(self):
+        p = SaveEditArgsPlanNamePopUp()
+        p.title = "EditArgs Plan Save"
+        p.setSaveData(self.__get_now_ArgsData(), self.script_title)
+        p.father = self
+        p.open()
+
+    def refresh_scriptEdit(self):
+        self.data = self.get_data_for_loadConfigList()
 
 
 class ScriptEditItem(BoxLayout):
@@ -210,10 +248,17 @@ class ExecuteList(BoxLayout):
         super(ExecuteList, self).__init__(**kwargs)
         self.data = self.__generate_data_for_executeList()
 
-    @staticmethod
-    def __generate_data_for_executeList(loadSetting=None):
-        data = []
-        scriptTitleList = FileWriter().LoadExecuteList(loadSetting)
+    def __generate_data_for_executeList(self, loadSetting=None):
+        if loadSetting:
+            data = []
+            scriptTitleList = FileWriter().LoadExecuteList(loadSetting)
+        else:
+            data = self.data
+            if data:
+                scriptTitleList = [scriptDict['script_title'] for scriptDict in data]
+            else:
+                scriptTitleList = []
+
         scriptsArgsDict = FileWriter().LoadAllScriptDate_OptionString()
 
         for scriptTitle in list(scriptTitleList):
@@ -221,19 +266,17 @@ class ExecuteList(BoxLayout):
             if scriptsArgsDict.get(scriptTitle):
                 scriptsArgs = scriptsArgsDict[scriptTitle]
 
-            data.append({"partner": None,
-                        "is_finish": False,
-                        "script_title": scriptTitle,
-                        "script_args": scriptsArgs,
-                        "now_progress": 0,
-                        })
-
+            data.append({"is_finish": False,
+                         "script_title": scriptTitle,
+                         "script_args": scriptsArgs,
+                         "now_progress": 0,
+                         })
         return data
 
     def get_data_for_executeList(self):
         return self.data
 
-    def refreshExecuteList(self, loadSetting=None):
+    def refresh_ExecuteList_Data(self, loadSetting=None):
         self.data = self.__generate_data_for_executeList(loadSetting)
 
     def refreshScriptCount(self):
@@ -253,8 +296,7 @@ class ExecuteList(BoxLayout):
 
     @staticmethod
     def call_loadListPopUp():
-        llp = LoadListPopUp()
-        llp.title = "LoadExecuteList"
+        llp = LoadListPopUp(None, "LoadListPopUpItem", "LoadExecuteConfigList")
         llp.open()
 
     data_for_ExecuteList = AliasProperty(get_data_for_executeList,bind=["data"])
@@ -293,16 +335,43 @@ class SaveListPopUp(Popup):
     pass
 
 
+class SaveEditArgsPlanNamePopUp(Popup):
+    savedData = None
+    script_title = None
+    father = None
+
+    def setSaveData(self, data, script_title):
+        self.savedData = data
+        self.script_title = script_title
+
+
 class LoadListPopUp(Popup):
     data = ListProperty()
+    loadTarget = None
+    loadArgs = None
+    listItemClass = None
+    fatherPopUp = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, fatherPopup, listItemClass=None, loadTarget=None, loadArgs=None, **kwargs):
+        if loadTarget:
+            self.loadTarget = loadTarget
+        else:
+            self.loadTarget = "LoadExecuteConfigList"
+
+        if loadArgs:
+            self.loadArgs = loadArgs
+
+        if fatherPopup:
+            print(233)
+            self.fatherPopup = fatherPopup
+        self.listItemClass = listItemClass
+
         super(LoadListPopUp, self).__init__(**kwargs)
 
+        self.title = self.loadTarget
+
     def get_data_for_loadConfigList(self):
-        return [{
-            "config_title": configName,
-        } for configName in FileWriter().LoadExecuteConfigList()]
+        return getattr(FileWriter(), self.loadTarget)(loadArgs=self.loadArgs)
 
     data_for_loadConfigList = AliasProperty(get_data_for_loadConfigList, bind=["data"])
 
@@ -311,7 +380,22 @@ class LoadListPopUpItem(BoxLayout):
     config_title = StringProperty()
 
 
+class LoadListPopUpItem_ScriptEdit(BoxLayout):
+    savedEditArgs_savedName = StringProperty()
+    savedEditArgs_Dict = {}
+    fatherPopUp = None
+
+    def handle_scriptEdit_load(self):
+        self.fatherPopUp.Reload_ScriptEditItem(self.savedEditArgs_Dict)
+
+
 class ScriptSettings(BoxLayout):
+    deviceID = None
+
+    ##
+    # TODO: 实现设备ID，保存脚本日志功能
+    ##
+
     pass
 
 
@@ -326,17 +410,6 @@ class ScriptExecute(BoxLayout):
     pass
 
 
-def singleton(cls):
-    instances = {}
-
-    def _singleton(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-
-    return _singleton
-
-
 @singleton
 class MGRApp(App):
     gm = None
@@ -346,6 +419,7 @@ class MGRApp(App):
     nowThreading = None
     timeCounter = None
     passTime = StringProperty()
+    logger = None
 
     def build(self):
         self.root = Controller()
@@ -353,8 +427,10 @@ class MGRApp(App):
         self.singleExecutePopUp = SingleExecutePopUp()
         self.timeCounter = TimeCounter()
         Clock.schedule_interval(self._update_clock, 1)
+        self.logger = MGRLogger(self).logger
 
         self.refresh_ManagerList()
+        self.refresh_ExecuteList("lastConfig")
 
         return self.root
 
@@ -367,8 +443,8 @@ class MGRApp(App):
     def refresh_ManagerList(self):
         self.root.ids.scriptManager.refresh_ScriptList()
 
-    def refresh_ExecuteList(self):
-        self.root.refreshExecuteList()
+    def refresh_ExecuteList(self, config=None):
+        self.root.refreshExecuteList(config)
 
     def handle_saveExecuteList(self, item=None):
         saveName = None
@@ -418,7 +494,7 @@ class MGRApp(App):
         self.gm.setScriptLauncherList(gdt.gameDict, False)
         self.nowThreading = threading.Thread(target=self.gm.scriptsStart)
         self.nowThreading.start()
-        print("Single Done")
+        self.logger.info("Single Script Done")
 
     def handle_ExecuteListRun(self):
         gdt = GamesDict()
@@ -449,7 +525,7 @@ class MGRApp(App):
 
             self.root.ids.executeList.ids.executeList_RecycleView.refresh_from_data()
         else:
-            print("sync_ScriptProcess Error")
+            self.logger.error("sync_ScriptProcess Error")
 
     def one_script_done(self, scriptName):
         self.sync_ScriptProcess(scriptName, 100)
@@ -458,10 +534,20 @@ class MGRApp(App):
             self.root.ids.executeList.refreshScriptCount()
 
     def handle_stopNowProcess(self):
-        stop_thread(self.nowThreading)
+        try:
+            stop_thread(self.nowThreading)
+        except ValueError:
+            self.logger.warning("The process has been killed")
 
     def handle_clearExecuteList(self):
         self.root.ids.executeList.data = []
+        self.root.ids.executeList.accomplishedScriptNumber = 0
+        self.refresh_ExecuteList()
+
+    def handle_saveScriptEditData(self, item):
+        FileWriter().SaveScriptEditData(item.savedData, item.ids.savePlanName.text, item.script_title)
+        item.dismiss()
+        item.father.refresh_scriptEdit()
 
     def add_AddLog(self, log):
         self.root.ids.logPanel.add_log(log)
@@ -473,11 +559,8 @@ class MGRApp(App):
         if not self.countOver:
             self.passTime = self.timeCounter.return_pass_time()
 
-
     def test(self):
         print(233)
-
-
 
 
 if __name__ == "__main__":

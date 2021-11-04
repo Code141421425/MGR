@@ -54,12 +54,16 @@ class Swipe(Operation):
 
 
 class TryChain(Operation):
-    def __init__(self, tar, tryList):
-        self.Execute(tar, tryList)
+    def __init__(self, tar, tryList=None, ifTouch=False):
+        self.Execute(tar, tryList, ifTouch)
 
     # 如果没有找到目标，就尝试列表中的下一个行为组
-    def Execute(self, tar, tryList):
+    def Execute(self, tar, tryList=None, ifTouch=None):
         success = False
+
+        # 如果没有尝试列表，就设为5次[500,500]
+        if not tryList:
+            tryList=[[500,500],[500,500],[500,500],[500,500],[500,500],[500,500]]
 
         for t in tryList:
             if not exists(tar):
@@ -70,7 +74,7 @@ class TryChain(Operation):
                 elif type(t) == list:
                     # 如果输入的是一个列表：就查点这个列表
                     if type(t[0]) != list:
-                        ExistsAndTouchSuit().Execute(t)
+                        WaitAndTouch().Execute(t)
                     # 如果输入的是两个列表：就查第1个列表，点第2个列表的位置
                     else:
                         ExistsAndTouchSuit().Execute(t[0], t[1])
@@ -80,10 +84,33 @@ class TryChain(Operation):
             #     print(e)
             else:
                 success = True
+                WaitAndTouch(tar)
                 break
 
         if not success:
             MGRLogger().logger.error("Fail to get target in TryList")
+
+
+class SwipeToSeeTarget(Operation):
+    def __init__(self, tar, SwipeList=None, ifTouch=False):
+        self.Execute(tar, SwipeList, ifTouch)
+
+    def Execute(self, tar, SwipeList, ifTouch):
+        # 如果存在，就直接return
+        if exists(tar):
+            if ifTouch:
+                WaitAndTouch(tar)
+        # 不存在就划一下
+        else:
+            swipe(SwipeList[0], SwipeList[1])
+            if exists(tar):
+                if ifTouch:
+                    WaitAndTouch(tar)
+                    return
+            else:
+                # 还没有就报错
+                MGRLogger.logger.Error("Swipe but can't see target")
+                raise TargetNotFoundError(str(__class__))
 
 
 class TouchUntilTargetDisappear(Operation):
@@ -96,6 +123,31 @@ class TouchUntilTargetDisappear(Operation):
             sleep(4)
 
         print("Done")
+
+
+class FindFromTemplateList(Operation):
+    # DO:
+    # 1、从一组图像中，看界面上是否存在列表中的图像
+    # 2、如果有的话，点击，如果有出现目标就返回，没有就就继续找
+    # 3、如果都找了一边，仍然没有找到，就报错
+    # Example:游戏王：决斗链接
+
+    def __init__(self, tar, templateList):
+        self.Execute(tar, templateList)
+
+    def Execute(self, tar, templateList):
+        for template in templateList:
+            if exists(template):
+                # 找到目标，点击
+                touch(template)
+                if exists(tar):
+                    # 存在目标，返回
+                    return
+                else:
+                    pass
+
+        # 没有找到目标，报错
+        raise TargetNotFoundError("FindFromTemplateList can't find target")
 
 
 class ExistsAndTouch(WaitAndTouch):
@@ -213,14 +265,17 @@ class GameStart(ScriptTemplate):
 
 class Battle(ScriptTemplate):
     battleTimes = []
-    __nowTimes = 0
+    _nowTimes = 0
+    battleFiled = None
 
-    def __init__(self, battleTimes=1):
+    def __init__(self, battleTimes=1, battleFiled=None):
         self.battleTimes = battleTimes
-        self.__nowTimes = 0
+        self._nowTimes = 0
+        self.battleFiled = battleFiled
 
     def ToBattleField(self):
-        pass
+        if self.battleFiled:
+            getattr(self, "ToBattleField_"+self.battleFiled)()
 
     def BattleOnce(self):
         pass
@@ -233,14 +288,16 @@ class Battle(ScriptTemplate):
 
         for i in range(self.battleTimes):
             self.BattleOnce()
-            self.__nowTimes += 1
-            self.sync_process()
+            self._nowTimes += 1
+            MGRLogger().logger.info("Script has run:{} times".format(str(self._nowTimes)))
+            self._sync_process()
+
 
         self.BackToMainCity()
 
-    def sync_process(self):
+    def _sync_process(self):
         try:
-            GameManager().sync_ScriptProcess_GM_to_UI(self.__class__.__name__, self.__nowTimes *100/self.battleTimes)
+            GameManager().sync_ScriptProcess_GM_to_UI(self.__class__.__name__, self._nowTimes *100/self.battleTimes)
         except:
             pass
 

@@ -14,12 +14,14 @@ class MGRLogger:
         self.notice = noticeType
 
         self.logger = logging.getLogger("MGR_Logger")
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
 
         self.streamHandler = logging.StreamHandler()
+        self.streamHandler.setLevel(logging.INFO)
         self.fileHandler = TimedRotatingFileHandler(self.LOG_PATH+"MGR Report",
                                                     when="D")
         self.fileHandler.suffix = "%Y-%m-%d_%H-%M-%S.log"
+        self.fileHandler.setLevel(logging.INFO)
 
         self.formatter = logging.Formatter("[%(levelname)-8s]%(asctime)s "
                                            "|%(filename)s: %(funcName)s (%(lineno)s) "
@@ -35,6 +37,7 @@ class MGRLogger:
 
         if app:
             self.appHandler = MGRHandler(app)
+            self.appHandler.setLevel(logging.DEBUG)
             self.logger.addHandler(self.appHandler)
             self.appHandler.setFormatter(self.shortFormatter)
 

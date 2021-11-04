@@ -1,5 +1,6 @@
 import random
 from airtest.core.api import *
+from Notice import MGRLogger
 
 
 class RandomPosTime:
@@ -22,10 +23,10 @@ class RandomPosTime:
                     sleep(self.DEFAULT_SLEEP_TIME)
 
         if (type(tarPos) != list) & (type(tarPos) != tuple):
-            print("Do Not find the picture when touch")
+            MGRLogger().logger.error("Can Not find the picture when touch:")
             return
 
-        print(tarPos)
+        MGRLogger().logger.debug("Touch: {}".format(tarPos))
 
         variable = 0
         if scale == 0:
