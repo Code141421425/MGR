@@ -4,9 +4,11 @@ from Notice import MGRLogger
 
 
 class RandomPosTime:
+    # DO:
+    # 以防被封号，或者被检测到，每次点击都会随机一点点的位移 和 点击间隔
     DEFAULT_POS = [500, 500]
     DEFAULT_SLEEP_TIME = 1
-    TRY_EXISTS_TIMES = 3
+    TRY_EXISTS_TIMES = 5
 
     def randomPos(self, tarPos=None, scale=0):
         # 为空位置，附加默认值
@@ -23,7 +25,10 @@ class RandomPosTime:
                     sleep(self.DEFAULT_SLEEP_TIME)
 
         if (type(tarPos) != list) & (type(tarPos) != tuple):
-            MGRLogger().logger.error("Can Not find the picture when touch:")
+            try:
+                MGRLogger().logger.error("Can Not find the picture when touch:"+str(tarPos))
+            except:
+                MGRLogger().logger.error("Can Not find the picture when touch:")
             return
 
         MGRLogger().logger.debug("Touch: {}".format(tarPos))

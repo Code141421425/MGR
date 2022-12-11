@@ -8,6 +8,7 @@ class FileWriter:
     SCRIPT_SETTING_NAME = "\\ScriptSettings.ini"
     BASE_SETTING_NAME = "\\BaseSettings.ini"
     SCRIPT_EDIT_SETTING_NAME = "\\ScriptEditArgsSaved.ini"
+    SCRIPTS_USED_COUNT_NAME = "\\ScriptsUsedCount.ini"
     EXECUTE_LIST_CONFIG = "ExecuteListConfig"
     nowFile = None
     translator = None
@@ -61,7 +62,7 @@ class FileWriter:
             allOptionStr = ""
             for option in self.conf.options(section):
                 allOptionStr = allOptionStr + "{}:{};".format(option, self.conf.get(section, option))
-            allOptionStr=allOptionStr[0:-1]
+            allOptionStr = allOptionStr[0:-1]
             result[section] = allOptionStr
 
         return result
@@ -112,9 +113,15 @@ class FileWriter:
 
     def LoadScriptEditData(self, loadArgs, codeMode=""):
         # DO:
+        # 作用：读取脚本参数方案
         # 输入：loadArgs - 载入目标的sectionName
         # 输出: 该section下，所有的方案组成的字典
-        # [{”savedEditArgs_savedName“：方案1，”savedEditArgs_Dict“:方案1参数组成的dict},{..}...]
+        # [{
+        #   ”savedEditArgs_savedName“：方案1，
+        #   ”savedEditArgs_Dict“:{
+        #                         方案1参数组成的dict
+        #                         }
+        #   },{..}...]
 
         self.__switchNowFile(self.SCRIPT_EDIT_SETTING_NAME)
         result = []
@@ -134,6 +141,8 @@ class FileWriter:
         return result
 
     def SaveScriptEditData(self, UIData, PlanName, script_title, codeMode=""):
+        # DO：
+        # 【断点】
         self.__switchNowFile(self.SCRIPT_EDIT_SETTING_NAME)
         self.translator = globals()[codeMode+'Translator']()
 
@@ -144,6 +153,33 @@ class FileWriter:
         self.conf.set(script_title, PlanName, data)
         MGRLogger().logger.info("New ScriptArgs Plan:{} saved:{}".format(PlanName, data))
         self.conf.write(open(self.nowFile, "w"))
+
+    def SaveScriptsUsedCount(self, scriptName):
+        self.__switchNowFile(self.SCRIPTS_USED_COUNT_NAME)
+
+        if not self.conf.has_section(scriptName):
+            self.conf.add_section(scriptName)
+            self.conf.set(scriptName, "used_count", str(1))
+
+        else:
+            preCount = self.conf.get(scriptName, "used_count")
+            self.conf.set(scriptName, "used_count", int(preCount) + 1)
+
+        self.conf.write(open(self.nowFile, "w"))
+
+    def LoadScriptsUsedCount(self):
+        # DO:
+        # 读取使用脚本的次数，以:
+        # [{script_title:XXX, used_count:X},{...}]
+        # 的格式返回结果
+        self.__switchNowFile(self.SCRIPTS_USED_COUNT_NAME)
+
+        result = {}
+
+        for section in self.conf.sections():
+            result[section] = int(self.conf.get(section, "used_count"))
+
+        return result
 
 
 class Translator:
@@ -174,6 +210,10 @@ class Translator:
 
 
 class FGOTranslator(Translator):
+
+    # def encode(self):
+    #     pass
+
     def decode(self, rawData):
         # DO:
         # 输入：方案的值
@@ -190,9 +230,9 @@ class FGOTranslator(Translator):
 
 if __name__ == "__main__":
 
-    FileWriter().SaveScriptEditData({"test4":223},"233","TestGame_2")
+    # FileWriter().SaveScriptEditData({"test4":223},"233","TestGame_2")
     #FileWriter().LoadScriptData("TestGame_2")
 
-    print(FileWriter().LoadScriptEditData("TestGame_1"))
+    print(FileWriter().LoadScriptsUsedCount().sort)
 
 

@@ -20,13 +20,10 @@
     cols:4
     rows:1
 
-
-
     ScriptManager
         id:scriptManager
     ExecuteList
         id:executeList
-
 
     GridLayout:
         rows:2
@@ -43,7 +40,7 @@
         id:logPanel
 
 
-<RecycleViewItem>:
+<RecycleViewItem>
     height:"48sp"
     size_hint_y:None
 
@@ -110,15 +107,18 @@
     size_hint_y:None
 
     TextInput:        
+        size_hint_x:.35
         id:argsName_input
         text:root.argsName
         font_size:14
     TextInput:
+        size_hint_x:.6
         id:argsCount_input
         text:root.argsCount
         font_size:14
     
     Button:
+        size_hint_x:.05
         text:"-"
         width:self.height
         height:30
@@ -129,7 +129,7 @@
 
 
 <ScriptArgsEditPopup>:    
-    size:600,300
+    size:700,300
     size_hint:None,None
     auto_dismiss: False
     title: '-'
@@ -139,7 +139,7 @@
         orientation:'horizontal'
 
         BoxLayout:            
-            size_hint_x:.55
+            size_hint_x:.6
             orientation:'vertical'
             padding:5
             ssize_hint_x:None
@@ -167,7 +167,7 @@
  
 
         BoxLayout:
-            size_hint_x:.35
+            size_hint_x:.32
             orientation:'vertical'
             padding:5
 
@@ -194,7 +194,7 @@
 
         BoxLayout:
             orientation:'vertical'
-            size_hint_x:.1
+            size_hint_x:.08
             Button:
                 text: 'Save\nArgs'
                 on_press: root.handle_saveArgs()
@@ -265,7 +265,7 @@
 
         BackgroundLabel:
             valign:"middle"
-            text:"Games: "
+            text:"Games: "            
             background_color: .5, .5, .5,1
             width:'70dp'
             size_hint_x:None
@@ -343,7 +343,7 @@
 
 <ExecuteList>
     orientation:"vertical"
-    width:300
+    width:320
     size_hint_x:None
 
     BackgroundLabel:
@@ -356,7 +356,7 @@
     BoxLayout:
         height:32
         size_hint_y:None
-        orientation:'horizontal'
+        orientation:'vertical'
 
         canvas:
             Color:
@@ -366,13 +366,20 @@
                 pos:self.pos
                 size: self.width,2
 
-        Label:
-            id:scriptCount
-            text:"Scripts: {}/{}".format(root.accomplishedScriptNumber, len(root.data))
+        BoxLayout:
+            orientation:'horizontal'
 
-        Label:
-            id:timeCounter
-            text:"Times: " + app.passTime
+            Label:
+                id:scriptCount
+                text:"Scripts: {}/{}".format(root.accomplishedScriptNumber, len(root.data))
+
+            Label:
+                id:timeCounter
+                text:"Times: " + app.passTime
+
+            Label:
+                id:stepCounter
+                text:"Steps: " + app.stepCount
         
 
     RecycleView:
@@ -512,9 +519,11 @@
     size_hint_y:None
 
     Label:
+        size_hint_x:.7
         text:root.config_title
 
     Button:
+        size_hint_x:.3
         text:"Load"
         on_release:app.handle_loadExecuteList(root)
 
@@ -523,11 +532,14 @@
     orientation:'horizontal'
     height:48
     size_hint_y:None
+    padding:2
 
     Label:
+        size_hint_x:.75
         text:root.savedEditArgs_savedName
 
     Button:
+        size_hint_x:.25
         text:"Load"
         on_release:root.handle_scriptEdit_load()
 
@@ -572,7 +584,7 @@
         Label:
             text:"Save Script log"
         Switch:
-            id:switch_tryOnce
+            id:switch_saveLog
             active:False
 
     BoxLayout:
@@ -581,6 +593,17 @@
         height:60
         Label:
             text:"Try Once"
+
+        Switch:
+            active:False
+
+    BoxLayout:
+        orientation:'horizontal'
+        size_hint_y:0.2
+        height:60
+        Label:
+            text:"Notify&wait handle\n  when error"
+            font_size:14
 
         Switch:
             active:False

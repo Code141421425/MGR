@@ -4,16 +4,22 @@ from ScriptsLauncherFactory import ScriptsLauncherFactory
 from BaseClass import *
 from Logger import MGRLogger
 from Notice import *
+from FileWirter import FileWriter
 
 
 @singleton
 class GameManager:
+    # DO：
+    # 1、单例，作为脚本层和逻辑层与UI界面的交互接口，与UI交流数据
+    # 2、通过循环执行scriptLauncherList，中实例的runScript()进行所有脚本的顺序执行
+    # 3、使用之前，必须先设定scriptLauncherList
+
     scriptFactory = None
     scriptLauncherList = []
     ifStartApp = False
     app = None
 
-    def __init__(self, dict=None, ifStartApp=True,app=None):
+    def __init__(self, dict=None, ifStartApp=True, app=None):
         self.scriptFactory = ScriptsLauncherFactory()
         self.ifStartApp = ifStartApp
 
@@ -46,10 +52,16 @@ class GameManager:
             for sl in gsl:
                 # 每个实例的执行方法
                 self.logger.info("=====>Script Start: "+sl.scriptName)
+
+                # 记录执行过
+                FileWriter().SaveScriptsUsedCount(sl.scriptName)
+
                 try:
                     sl.runScript()
                 except SystemExit:
                     self.logger.info("Script force exit")
+                    # TODO：
+                    # 可以判断加入等待，是否人工处理
                     break
                 except:
                     # 暂停游戏，并通知
@@ -63,6 +75,7 @@ class GameManager:
             self.app.countOver = True
 
     def singleScriptStart(self, scriptTypeCode, gameName, **kwargs):
+        # 本来是用来单独执行单个脚本的，但是通过在list中设定一个实例而废弃了
         if scriptTypeCode == 0:
             scriptType = ScriptsLauncherFactory.STARTUP_CLASS_NAME
         elif scriptTypeCode == 1:
@@ -78,6 +91,8 @@ class GameManager:
     def sync_ScriptProcess_GM_to_UI(self, scriptName, process):
         self.app.sync_ScriptProcess(scriptName, process)
 
+    def sync_StepProcessAdd_GM_to_UI(self, process):
+        self.app.sync_StepProcess_add(process)
 
 if __name__ == "__main__":
     gm = GameManager()
